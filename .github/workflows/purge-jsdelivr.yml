@@ -1,0 +1,38 @@
+name: Purge jsDelivr cache
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "**/*.mp3"
+      - "**/*.MP3"
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Purge all MP3 files from jsDelivr
+        run: |
+          OWNER="${{ github.repository_owner }}"
+          REPO="${{ github.event.repository.name }}"
+          BRANCH="main"
+
+          echo "Repository: $OWNER/$REPO"
+          echo "Branch: $BRANCH"
+
+          find . -type f \( -iname "*.mp3" \) | while read -r file; do
+            path="${file#./}"
+            encoded_path=$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.argv[1]))" "$path")
+            url="https://purge.jsdelivr.net/gh/$OWNER/$REPO@$BRANCH/$encoded_path"
+
+            echo "Purging: $url"
+            curl -sS "$url"
+            echo ""
+            sleep 0.2
+          done
